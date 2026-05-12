@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MRH-G2Ray Admin GUI</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { font-family: sans-serif; margin: 2rem; background: #0f172a; color: #e2e8f0; }
+    .box { max-width: 900px; margin: 0 auto; padding: 1rem 1.25rem; border: 1px solid #334155; border-radius: 12px; background: #111827; }
+    h1 { margin-top: 0; }
+    label { display: block; margin-top: .75rem; font-weight: 600; }
+    input { width: 100%; margin-top: .25rem; padding: .6rem; border-radius: 8px; border: 1px solid #475569; background: #0b1220; color: #e2e8f0; }
+    button { margin-top: .9rem; padding: .6rem .9rem; border: 0; border-radius: 8px; cursor: pointer; background: #22c55e; color: #06210f; font-weight: 700; }
+    pre { overflow: auto; padding: .8rem; border-radius: 8px; border: 1px solid #334155; background: #020617; }
+    .muted { color: #94a3b8; font-size: .95rem; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>MRH-G2Ray Admin GUI</h1>
+    <p class="muted">This panel generates your VLESS link without terminal usage.</p>
+    <label for="uuid">UUID</label>
+    <input id="uuid" value="">
+    <label for="path">Path</label>
+    <input id="path" value="/">
+    <label for="remark">Remark</label>
+    <input id="remark" value="ghtun">
+    <button id="copyBtn">Copy VLESS Link</button>
+    <pre id="link"></pre>
+  </div>
+  <script>
+    const uuidEl = document.getElementById("uuid");
+    const pathEl = document.getElementById("path");
+    const remarkEl = document.getElementById("remark");
+    const linkEl = document.getElementById("link");
+    const copyBtn = document.getElementById("copyBtn");
+
+    function extractCodespaceName(hostname) {
+      const match = hostname.match(/^(.*)-\d+\.app\.github\.dev$/);
+      return match ? match[1] : "";
+    }
+
+    function buildLink() {
+      const name = extractCodespaceName(window.location.hostname);
+      const endpoint = name ? `${name}-443.app.github.dev` : "YOUR-CODESPACE-NAME-443.app.github.dev";
+      const uuid = encodeURIComponent(uuidEl.value.trim());
+      const path = encodeURIComponent(pathEl.value.trim() || "/");
+      const remark = encodeURIComponent(remarkEl.value.trim() || "ghtun");
+      return `vless://${uuid}@${endpoint}:443?encryption=none&security=tls&type=xhttp&mode=packet-up&sni=${endpoint}&path=${path}#${remark}`;
+    }
+
+    function render() {
+      linkEl.textContent = buildLink();
+    }
+
+    [uuidEl, pathEl, remarkEl].forEach((el) => el.addEventListener("input", render));
+    copyBtn.addEventListener("click", async () => {
+      const text = buildLink();
+      try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = "Copied!";
+      } catch (error) {
+        console.warn("Clipboard copy failed:", error);
+        copyBtn.textContent = "Copy failed";
+      }
+      setTimeout(() => (copyBtn.textContent = "Copy VLESS Link"), 1200);
+    });
+
+    async function preloadInfo() {
+      try {
+        const info = await fetch("xray-info.json", { cache: "no-store" }).then((r) => r.json());
+        if (info.uuid) uuidEl.value = info.uuid;
+        if (info.path) pathEl.value = info.path;
+        if (info.remark) remarkEl.value = info.remark;
+      } catch (error) {
+        console.warn("Could not load xray-info.json:", error);
+        if (!uuidEl.value) uuidEl.value = "UUID not loaded. Please wait for Xray start, then refresh.";
+      }
+      render();
+    }
+
+    preloadInfo();
+  </script>
+</body>
+</html>
