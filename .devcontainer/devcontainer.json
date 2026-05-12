@@ -1,0 +1,36 @@
+{
+  "name": "RayPlus2",
+  "build": {
+    "dockerfile": "./Dockerfile",
+    "context": "."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": false
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
+    }
+  },
+  "postAttachCommand": {
+    "public": "gh codespace ports visibility 443:public 8080:public -c $CODESPACE_NAME",
+    "xray": "/usr/local/bin/start-xray.sh",
+    "admin": "/usr/local/bin/start-admin.sh"
+  },
+  "portsAttributes": {
+    "443": {
+      "label": "xray",
+      "protocol": "http",
+      "onAutoForward": "silent"
+    },
+    "8080": {
+      "label": "admin-gui",
+      "protocol": "http",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "forwardPorts": [443, 8080],
+  "hostRequirements": {
+    "cpus": 2
+  }
+}
